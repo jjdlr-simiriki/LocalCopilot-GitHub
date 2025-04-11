@@ -1,0 +1,53 @@
+import os
+import openai
+import json
+
+def get_event_data():
+    """
+    Reads GitHub event data from the environment variable GITHUB_EVENT_PATH.
+    This file contains information about the event that triggered the workflow.
+    """
+    event_path = os.getenv('GITHUB_EVENT_PATH')
+    if not event_path:
+        raise Exception("GITHUB_EVENT_PATH environment variable is not set.")
+    
+    with open(event_path, 'r') as file:
+        return json.load(file)
+
+def main():
+    """
+    Main function to process GitHub event data and send it to ChatGPT for response.
+    """
+    # Set your OpenAI API key from the environment variable
+    openai.api_key = os.getenv("OPENAI_API_KEY")
+    if not openai.api_key:
+        raise Exception("OPENAI_API_KEY environment variable is not set.")
+
+    # Get the GitHub event data
+    event_data = get_event_data()
+
+    # Prepare a prompt for ChatGPT based on the event data
+    prompt = f"""
+    You are a helpful assistant. The following is a GitHub event JSON data:
+    {json.dumps(event_data, indent=2)}
+    Please provide insights or actions based on this event data.
+    """
+
+    # Send the prompt to ChatGPT
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": prompt}
+        ]
+    )
+
+    # Extract the response content
+    chatgpt_response = response['choices'][0]['message']['content']
+
+    # Print the response (this will appear in the GitHub Actions logs)
+    print("ChatGPT Response:")
+    print(chatgpt_response)
+
+if __name__ == "__main__":
+    main()
